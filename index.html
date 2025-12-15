@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journey to Paris - Final Version</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto+Mono:wght@400;700&display=swap');
+
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #c6a87c; /* Gold */
+            --light: #f5f5f5;
+            --success: #4caf50;
+            --danger: #e94560;
+            --water: #00a8cc;
+            --font-main: 'Montserrat', sans-serif;
+            --font-serif: 'Playfair Display', serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--primary); color: var(--light);
+            font-family: var(--font-main);
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh;
+        }
+
+        header { text-align: center; padding: 40px 20px; }
+        h1 { font-family: var(--font-serif); font-size: 3rem; color: var(--accent); margin: 0; letter-spacing: 2px; }
+        p.subtitle { font-style: italic; opacity: 0.8; margin-top: 10px; }
+
+        /* INVENTORY */
+        .inventory-container {
+            background: rgba(255,255,255,0.05); padding: 20px;
+            border-radius: 15px; border: 1px solid var(--accent);
+            margin-bottom: 30px; text-align: center; width: 90%; max-width: 600px;
+        }
+        .letter-slots { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .letter-slot {
+            width: 40px; height: 50px; border-bottom: 2px solid var(--light);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-family: var(--font-serif); color: var(--accent);
+        }
+
+        /* GAME GRID */
+        .game-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px; width: 90%; max-width: 800px; padding-bottom: 50px;
+        }
+        .game-card {
+            background: var(--secondary); border-radius: 12px; padding: 20px;
+            text-align: center; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(198, 168, 124, 0.2); position: relative; overflow: hidden;
+        }
+        .game-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); border-color: var(--accent); }
+        .game-card.completed { background: #0f3d1e; border-color: var(--success); pointer-events: none; }
+        .game-card.completed::after {
+            content: "✓"; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 4rem; color: rgba(255,255,255,0.2);
+        }
+        .game-icon { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+        .game-title { font-weight: 500; font-size: 0.9rem; }
+
+        /* FINAL BUTTON */
+        #final-game-btn {
+            background: var(--accent); color: var(--primary); border: none; padding: 15px 40px;
+            font-size: 1.2rem; font-family: var(--font-serif); font-weight: bold;
+            border-radius: 50px; cursor: pointer; margin-top: 20px; margin-bottom: 50px;
+            display: none; box-shadow: 0 0 15px var(--accent); animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* MODAL */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: var(--secondary); padding: 30px; border-radius: 15px;
+            width: 95%; max-width: 600px; border: 2px solid var(--accent);
+            text-align: center; position: relative; max-height: 90vh; overflow-y: auto;
+        }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: var(--light); }
+        .game-area { margin-top: 20px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        
+        button.game-btn {
+            background: var(--accent); color: var(--primary); border: none;
+            padding: 10px 20px; border-radius: 5px; cursor: pointer;
+            font-weight: bold; margin: 5px; transition: 0.2s;
+        }
+        button.game-btn:hover { background: #fff; }
+
+        /* --- SPECIFIC GAME STYLES --- */
+
+        /* Minesweeper */
+        .mines-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: #333; padding: 4px; border-radius: 5px; }
+        .mines-cell {
+            width: 50px; height: 50px; background: #555; display: flex;
+            align-items: center; justify-content: center; cursor: pointer;
+            font-weight: bold; font-family: var(--font-mono); font-size: 1.2rem; border-radius: 2px;
+        }
+        .mines-revealed { background: #bbb; color: #000; cursor: default; }
+        .mines-bomb { background: var(--danger); }
+
+        /* Crossword */
+        .cw-container { display: grid; gap: 2px; margin: 20px auto; }
+        .cw-cell { width: 40px; height: 40px; background: #000; border: 1px solid #444; display: flex; align-items: center; justify-content: center; }
+        .cw-active { background: #fff; }
+        .cw-input {
+            width: 100%; height: 100%; border: none; text-align: center; font-weight: bold; font-size: 1.2rem;
+            text-transform: uppercase; outline: none; background: transparent;
+        }
+        .cw-prefilled { background: #ddd; color: #000; }
+
+        /* Maze (Keyboard) */
+        .maze-box { position: relative; width: 300px; height: 200px; background: #ddd; overflow: hidden; border: 2px solid #fff; }
+        .maze-wall { position: absolute; background: firebrick; }
+        .maze-player {
+            position: absolute; width: 15px; height: 15px; background: var(--primary);
+            border-radius: 50%; z-index: 10; border: 2px solid var(--accent);
+            transition: top 0.1s, left 0.1s;
+        }
+        .maze-start { position: absolute; top: 0; left: 0; width: 30px; height: 30px; background: rgba(0,255,0,0.3); }
+        .maze-end { position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; background: rgba(255,215,0,0.5); border: 1px dashed gold; }
+
+        /* Final Puzzle Drag/Click */
+        .puzzle-container { width: 100%; margin-top: 20px; }
+        .puzzle-section-label { color: #888; font-size: 0.8rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .puzzle-slots-area {
+            display: flex; justify-content: center; gap: 5px; margin-bottom: 30px;
+            background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; min-height: 60px;
+        }
+        .puzzle-pool-area {
+            display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; min-height: 50px;
+        }
+        .puzzle-tile {
+            width: 40px; height: 40px; background: var(--accent); color: var(--primary);
+            font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 5px; user-select: none; box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+        .puzzle-tile:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+        .empty-slot {
+            width: 40px; height: 40px; border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 5px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.2);
+        }
+
+        /* Standard Game Styles */
+        .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .memory-card { background: #fff; width: 60px; height: 60px; color: #000; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.8rem; border-radius: 4px; }
+        .hidden-card { background: var(--accent); color: transparent; }
+        
+        .wordle-row { display: flex; gap: 5px; margin-bottom: 5px; }
+        .wordle-cell { width: 40px; height: 40px; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; text-transform: uppercase; font-weight: bold; }
+        .wordle-correct { background: var(--success); border-color: var(--success); }
+        .wordle-present { background: #d4af37; border-color: #d4af37; }
+        
+        .tictac-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: var(--accent); padding: 5px; }
+        .tictac-cell { width: 60px; height: 60px; background: var(--secondary); display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; }
+
+        /* River/Buckets/Diff from previous version */
+        .river-scene { width: 100%; background: #1a1a1a; border-radius: 10px; overflow: hidden; margin-bottom: 15px; }
+        .bank { background: #2e7d32; min-height: 60px; padding: 10px; display: flex; justify-content: center; gap: 10px; align-items: center; border-bottom: 4px solid #1b5e20; }
+        .river { background: var(--water); height: 80px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .boat { font-size: 2rem; transition: transform 0.5s; z-index: 10; cursor: pointer; }
+        .river-item { font-size: 1.8rem; cursor: pointer; user-select: none; transition: 0.2s; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
+        
+        .buckets-stage { display: flex; justify-content: center; align-items: flex-end; gap: 40px; height: 200px; margin-bottom: 20px; }
+        .bucket-container { text-align: center; }
+        .bucket { border: 4px solid #888; border-top: none; background: rgba(255,255,255,0.1); position: relative; border-radius: 0 0 10px 10px; width: 80px; overflow: hidden; }
+        .bucket-water { position: absolute; bottom: 0; left: 0; width: 100%; background: var(--water); transition: height 0.5s ease-out; opacity: 0.8; }
+        
+        .diff-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; font-family: var(--font-mono); font-size: 1.2rem; color: #888; }
+        .diff-num { cursor: pointer; padding: 5px; }
+        .diff-num:hover { color: #fff; background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>BUON COMPLEANNO</h1>
+        <p class="subtitle">Complete the 11 challenges to unlock the secret destination.</p>
+    </header>
+
+    <div class="inventory-container">
+        <div class="inventory-title">Collected Letters</div>
+        <div class="letter-slots" id="letter-slots"></div>
+    </div>
+
+    <div class="game-grid">
+        <div class="game-card" onclick="startGame('memory')"><span class="game-icon">🇮🇹</span><div class="game-title">Italian/English Memory</div></div>
+        <div class="game-card" onclick="startGame('wordle')"><span class="game-icon">🟩</span><div class="game-title">Wordle</div></div>
+        <div class="game-card" onclick="startGame('hangman')"><span class="game-icon">😵</span><div class="game-title">Hangman</div></div>
+        <div class="game-card" onclick="startGame('tictactoe')"><span class="game-icon">❌</span><div class="game-title">Tic Tac Toe</div></div>
+        <div class="game-card" onclick="startGame('mines')"><span class="game-icon">💣</span><div class="game-title">Safe Sweeper</div></div>
+        <div class="game-card" onclick="startGame('crossword')"><span class="game-icon">✏️</span><div class="game-title">Linked Crossword</div></div>
+        <div class="game-card" onclick="startGame('maze')"><span class="game-icon">🌀</span><div class="game-title">Keyboard Maze</div></div>
+        <div class="game-card" onclick="startGame('stopwatch')"><span class="game-icon">⏱️</span><div class="game-title">Stop the Time</div></div>
+        <div class="game-card" onclick="startGame('buckets')"><span class="game-icon">🪣</span><div class="game-title">Water Buckets</div></div>
+        <div class="game-card" onclick="startGame('river')"><span class="game-icon">🛶</span><div class="game-title">River Crossing</div></div>
+        <div class="game-card" onclick="startGame('diff')"><span class="game-icon">👀</span><div class="game-title">Find the Number</div></div>
+    </div>
+
+    <button id="final-game-btn" onclick="startFinalGame()">SOLVE THE MYSTERY</button>
+
+    <div id="game-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title" style="color:var(--accent); font-family:var(--font-serif)">Game Title</h2>
+            <p id="modal-instructions" style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 20px;">Instructions</p>
+            <div id="game-area" class="game-area"></div>
+            <div id="game-message" style="margin-top: 15px; color: var(--accent); font-weight: bold; min-height: 20px;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        // --- GAME STATE ---
+        const letterPool = ['T', 'R', 'I', 'P', 'T', 'O', 'P', 'A', 'R', 'I', 'S'];
+        letterPool.sort(() => Math.random() - 0.5);
+        
+        const completedGames = new Set();
+        const collectedLetters = [];
+        let mazeKeyHandler = null; // To clean up event listeners
+
+        function init() { renderInventory(); }
+
+        function renderInventory() {
+            const container = document.getElementById('letter-slots');
+            container.innerHTML = '';
+            for (let i = 0; i < 11; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'letter-slot';
+                if (collectedLetters[i]) {
+                    slot.textContent = collectedLetters[i];
+                } else {
+                    slot.textContent = '?'; slot.style.opacity = '0.3';
+                }
+                container.appendChild(slot);
+            }
+        }
+
+        function checkAllCompleted() {
+            if (completedGames.size === 11) {
+                document.getElementById('final-game-btn').style.display = 'block';
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+        }
+
+        function winGame(gameId) {
+            if (completedGames.has(gameId)) return;
+            const letter = letterPool.pop();
+            collectedLetters.push(letter);
+            completedGames.add(gameId);
+            
+            // Clean up any maze listeners if active
+            if(mazeKeyHandler) { document.removeEventListener('keydown', mazeKeyHandler); mazeKeyHandler = null; }
+
+            document.getElementById('game-message').textContent = `Correct! You found the letter: ${letter}`;
+            setTimeout(() => {
+                closeModal();
+                renderInventory();
+                const card = document.querySelector(`.game-card[onclick="startGame('${gameId}')"]`);
+                if(card) card.classList.add('completed');
+                checkAllCompleted();
+            }, 1500);
+        }
+
+        // --- MODAL CONTROLS ---
+        const modal = document.getElementById('game-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalInstr = document.getElementById('modal-instructions');
+        const gameArea = document.getElementById('game-area');
+        const msgArea = document.getElementById('game-message');
+
+        function closeModal() { 
+            modal.style.display = 'none'; 
+            if(mazeKeyHandler) { document.removeEventListener('keydown', mazeKeyHandler); mazeKeyHandler = null; }
+        }
+        
+        function startGame(gameId) {
+            if (completedGames.has(gameId)) return;
+            modal.style.display = 'flex';
+            gameArea.innerHTML = ''; msgArea.textContent = '';
+            modalTitle.textContent = gameId.toUpperCase();
+            
+            switch(gameId) {
+                case 'memory': setupMemory(); break;
+                case 'wordle': setupWordle(); break;
+                case 'hangman': setupHangman(); break;
+                case 'tictactoe': setupTicTacToe(); break;
+                case 'mines': setupMines(); break;
+                case 'crossword': setupCrossword(); break;
+                case 'maze': setupMaze(); break;
+                case 'stopwatch': setupStopwatch(); break;
+                case 'buckets': setupBuckets(); break;
+                case 'river': setupRiver(); break;
+                case 'diff': setupDiff(); break;
+            }
+        }
+
+        // --- GAME LOGIC ---
+
+        function setupMemory() {
+            modalTitle.textContent = "Translator Memory"; modalInstr.textContent = "Match Italian word to English meaning.";
+            const pairs = [
+              { it: 'Amore', en: 'Love' },
+              { it: 'Mare', en: 'Sea' },
+              { it: 'Pane', en: 'Bread' },
+              { it: 'Acqua', en: 'Water' },
+              { it: 'Gatto', en: 'Cat' },
+              { it: 'Cane', en: 'Dog' },
+              { it: 'Buono', en: 'Good' },
+              { it: 'Uomo', en: 'Man' },
+              { it: 'Donna', en: 'Woman' },
+              { it: 'Bimbo', en: 'Child' },
+              { it: 'Sole', en: 'Sun' },
+              { it: 'Luna', en: 'Moon' },
+            ];
+            let cards = []; pairs.forEach((p, i) => { cards.push({txt: p.it, id: i}); cards.push({txt: p.en, id: i}); });
+            cards.sort(() => Math.random() - 0.5);
+            const grid = document.createElement('div'); grid.className = 'memory-grid';
+            let first = null, locked = false, matches = 0;
+            cards.forEach(c => {
+                const el = document.createElement('div'); el.className = 'memory-card hidden-card';
+                el.onclick = () => {
+                    if (locked || el === first?.el || !el.classList.contains('hidden-card')) return;
+                    el.textContent = c.txt; el.classList.remove('hidden-card');
+                    if (!first) first = {el, id: c.id};
+                    else {
+                        if (first.id === c.id) { first = null; matches++; if (matches === 4) winGame('memory'); } 
+                        else { locked = true; setTimeout(() => { el.classList.add('hidden-card'); el.textContent = ''; first.el.classList.add('hidden-card'); first.el.textContent = ''; first = null; locked = false; }, 1000); }
+                    }
+                };
+                grid.appendChild(el);
+            });
+            gameArea.appendChild(grid);
+        }
+
+        function setupWordle() {
+            modalTitle.textContent = "Wordle"; modalInstr.textContent = "Guess the 5-letter word (Italian edition)";
+            const target = "AMORE"; let rowIdx = 0; const rows = [];
+            for(let i=0; i<5; i++){
+                const row = document.createElement('div'); row.className = 'wordle-row'; const cells = [];
+                for(let j=0; j<5; j++){ const cell = document.createElement('div'); cell.className = 'wordle-cell'; row.appendChild(cell); cells.push(cell); }
+                gameArea.appendChild(row); rows.push(cells);
+            }
+            const input = document.createElement('input'); input.maxLength = 5; input.style.cssText = 'margin:10px; padding:10px; text-transform:uppercase;';
+            const btn = document.createElement('button'); btn.textContent = "GUESS"; btn.className = 'game-btn';
+            btn.onclick = () => {
+                const val = input.value.toUpperCase();
+                if (val.length !== 5) return;
+                let correct = 0;
+                for(let i=0; i<5; i++){
+                    rows[rowIdx][i].textContent = val[i];
+                    if (val[i] === target[i]) { rows[rowIdx][i].classList.add('wordle-correct'); correct++; }
+                    else if (target.includes(val[i])) rows[rowIdx][i].classList.add('wordle-present');
+                }
+                if (correct === 5) winGame('wordle');
+                else { rowIdx++; input.value = ''; if (rowIdx === 5) { msgArea.textContent = "Over. Retry."; setTimeout(() => startGame('wordle'), 1500); } }
+            };
+            gameArea.appendChild(input); gameArea.appendChild(btn);
+        }
+
+        function setupHangman() {
+            modalTitle.textContent = "Hangman"; modalInstr.textContent = "Indovina il cibo";
+            const word = "BAGUETTE"; const hidden = Array(word.length).fill('_'); let mistakes = 0;
+            const display = document.createElement('div'); display.style.cssText = 'font-size:2rem; letter-spacing:5px; margin-bottom:20px;'; display.textContent = hidden.join(' ');
+            const keyboard = document.createElement('div');
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('').forEach(l => {
+                const btn = document.createElement('button'); btn.textContent = l; btn.style.cssText = 'padding:5px 8px; margin:2px;';
+                btn.onclick = () => {
+                    btn.disabled = true;
+                    if (word.includes(l)) { for(let i=0; i<word.length; i++) if(word[i] === l) hidden[i] = l; display.textContent = hidden.join(' '); if(!hidden.includes('_')) winGame('hangman'); }
+                    else { mistakes++; if(mistakes >= 6) { msgArea.textContent = "Lost!"; setTimeout(() => startGame('hangman'), 1000); } }
+                };
+                keyboard.appendChild(btn);
+            });
+            gameArea.appendChild(display); gameArea.appendChild(keyboard);
+        }
+
+        function setupTicTacToe() {
+            modalTitle.textContent = "Tic Tac Toe"; modalInstr.textContent = "Beat the AI (You are X).";
+            let board = Array(9).fill(null); const grid = document.createElement('div'); grid.className = 'tictac-grid';
+            function check(p) { return [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(c => board[c[0]]===p && board[c[1]]===p && board[c[2]]===p); }
+            board.forEach((_, i) => {
+                const cell = document.createElement('div'); cell.className = 'tictac-cell';
+                cell.onclick = () => {
+                    if (board[i] || msgArea.textContent) return;
+                    board[i] = 'X'; cell.textContent = 'X';
+                    if (check('X')) winGame('tictactoe');
+                    else if (!board.includes(null)) { msgArea.textContent = "Draw"; setTimeout(() => startGame('tictactoe'), 1000); }
+                    else {
+                        let empty = board.map((v,idx)=>v?null:idx).filter(v=>v!==null); let move = empty[Math.floor(Math.random()*empty.length)];
+                        board[move] = 'O'; grid.children[move].textContent = 'O';
+                        if(check('O')) { msgArea.textContent = "AI Won"; setTimeout(() => startGame('tictactoe'), 1000); }
+                    }
+                };
+                grid.appendChild(cell);
+            });
+            gameArea.appendChild(grid);
+        }
+
+        function setupMines() {
+            modalTitle.textContent = "Safe Sweeper"; modalInstr.textContent = "Clear all safe cells.";
+            const rows = 5; const cols = 5; const bombs = 3;
+            let grid = []; let safeCells = (rows * cols) - bombs; let revealedCount = 0; let gameOver = false;
+            for(let r=0; r<rows; r++) { grid[r] = []; for(let c=0; c<cols; c++) grid[r][c] = { bomb: false, revealed: false, count: 0 }; }
+            let placed = 0; while(placed < bombs) { let r = Math.floor(Math.random() * rows); let c = Math.floor(Math.random() * cols); if(!grid[r][c].bomb) { grid[r][c].bomb = true; placed++; } }
+            for(let r=0; r<rows; r++) { for(let c=0; c<cols; c++) {
+                if(grid[r][c].bomb) continue;
+                let neighbors = 0;
+                for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) { let nr = r+i, nc = c+j; if(nr>=0 && nr<rows && nc>=0 && nc<cols && grid[nr][nc].bomb) neighbors++; }
+                grid[r][c].count = neighbors;
+            }}
+            const domGrid = document.createElement('div'); domGrid.className = 'mines-grid';
+            for(let r=0; r<rows; r++) { for(let c=0; c<cols; c++) {
+                const cell = document.createElement('div'); cell.className = 'mines-cell';
+                cell.onclick = () => {
+                    if(gameOver || grid[r][c].revealed) return;
+                    grid[r][c].revealed = true; cell.classList.add('mines-revealed');
+                    if(grid[r][c].bomb) { cell.textContent = '💣'; cell.classList.add('mines-bomb'); msgArea.textContent = "BOOM! Restarting..."; gameOver = true; setTimeout(() => startGame('mines'), 2000); }
+                    else { cell.textContent = grid[r][c].count > 0 ? grid[r][c].count : ''; cell.style.color = ['#000', 'blue', 'green', 'red', 'purple'][grid[r][c].count] || 'black'; revealedCount++; if(revealedCount === safeCells) winGame('mines'); }
+                };
+                domGrid.appendChild(cell);
+            }}
+            gameArea.appendChild(domGrid);
+        }
+
+        function setupCrossword() {
+            modalTitle.textContent = "Linked Crossword"; modalInstr.innerHTML = "Across: Country (in italian) <br> Down: City (in english)";
+            const layout = 
+            [{r:0,c:1,l:'K'},{r:1,c:1,l:'O'},{r:2,c:0,l:'S'},{r:2,c:1,l:'P', fixed:true},{r:2,c:2,l:'A'},{r:2,c:3,l:'G'},{r:2,c:4,l:'N'},{r:2,c:5,l:'A'},{r:3,c:1,l:'E'},{r:4,c:1,l:'R'}];
+            const grid = document.createElement('div'); grid.className = 'cw-container'; grid.style.gridTemplateColumns = 'repeat(6, 40px)';
+            for(let r=0; r<5; r++) { for(let c=0; c<6; c++) {
+                const cell = document.createElement('div'); cell.className = 'cw-cell';
+                const data = layout.find(item => item.r === r && item.c === c);
+                if(data) {
+                    cell.classList.add('cw-active'); const inp = document.createElement('input'); inp.className = 'cw-input'; inp.maxLength = 1;
+                    if(data.fixed) { inp.value = 'P'; inp.disabled = true; inp.classList.add('cw-prefilled'); }
+                    inp.dataset.ans = data.l;
+                    inp.onkeyup = () => { let correct = true; document.querySelectorAll('.cw-input').forEach(i => { if(i.value.toUpperCase() !== i.dataset.ans) correct = false; }); if(correct) winGame('crossword'); };
+                    cell.appendChild(inp);
+                }
+                grid.appendChild(cell);
+            }}
+            gameArea.appendChild(grid);
+        }
+
+        // --- 7. MAZE (KEYBOARD VERSION) ---
+        function setupMaze() {
+            modalTitle.textContent = "Keyboard Maze";
+            modalInstr.textContent = "Use Arrow Keys to move the Blue Dot to the Golden Zone. Avoid red walls!";
+            
+            const box = document.createElement('div');
+            box.className = 'maze-box';
+
+            // Walls (x, y, w, h)
+            const walls = [
+                {x: 60, y: 0, w: 20, h: 160},
+                {x: 140, y: 50, w: 20, h: 150},
+                {x: 220, y: 0, w: 20, h: 140},
+                {x: 220, y: 160, w: 80, h: 20}
+            ];
+
+            // Render Walls
+            walls.forEach(w => {
+                const el = document.createElement('div');
+                el.className = 'maze-wall';
+                el.style.left = w.x + 'px'; el.style.top = w.y + 'px';
+                el.style.width = w.w + 'px'; el.style.height = w.h + 'px';
+                box.appendChild(el);
+            });
+
+            // Start & End zones
+            const startZone = document.createElement('div'); startZone.className = 'maze-start';
+            const endZone = document.createElement('div'); endZone.className = 'maze-end';
+            box.appendChild(startZone);
+            box.appendChild(endZone);
+
+            // Player
+            const player = document.createElement('div');
+            player.className = 'maze-player';
+            let px = 5, py = 5; // Start pos
+            const speed = 5;
+            const pSize = 15;
+            
+            const updatePos = () => {
+                player.style.left = px + 'px';
+                player.style.top = py + 'px';
+            };
+            updatePos();
+            box.appendChild(player);
+            gameArea.appendChild(box);
+
+            // Collision Logic
+            function checkCollision(x, y) {
+                // Bounds (300x200 box)
+                if (x < 0 || y < 0 || x + pSize > 300 || y + pSize > 200) return true;
+                
+                // Walls
+                for(let w of walls) {
+                    if (x < w.x + w.w && x + pSize > w.x && y < w.y + w.h && y + pSize > w.y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Key Handler
+            mazeKeyHandler = (e) => {
+                if(!modal.style.display || modal.style.display === 'none') return;
+                
+                let nx = px, ny = py;
+                if(e.key === 'ArrowUp') ny -= speed;
+                else if(e.key === 'ArrowDown') ny += speed;
+                else if(e.key === 'ArrowLeft') nx -= speed;
+                else if(e.key === 'ArrowRight') nx += speed;
+                else return; // Not an arrow key
+
+                e.preventDefault(); // Stop scrolling
+
+                if (!checkCollision(nx, ny)) {
+                    px = nx; py = ny;
+                    updatePos();
+                    // Check Win (Bottom Right area > 260x, > 160y roughly)
+                    if (px > 270 && py > 170) {
+                        winGame('maze');
+                    }
+                }
+            };
+
+            document.addEventListener('keydown', mazeKeyHandler);
+        }
+
+        function setupStopwatch() {
+            modalTitle.textContent = "Chrono Challenge"; modalInstr.textContent = "Stop exactly between 5.00s and 5.20s.";
+            let startT, interval, running = false;
+            const disp = document.createElement('div'); disp.style.cssText = 'font-size:3rem; font-family:monospace;'; disp.textContent = "0.00";
+            const btn = document.createElement('button'); btn.className = 'game-btn'; btn.textContent = "START";
+            btn.onclick = () => {
+                if(!running) { running = true; startT = Date.now(); btn.textContent = "STOP"; interval = setInterval(() => disp.textContent = ((Date.now()-startT)/1000).toFixed(2), 50); }
+                else { clearInterval(interval); running = false; const t = parseFloat(disp.textContent); if(t >= 5.00 && t <= 5.20) { btn.style.background = 'green'; winGame('stopwatch'); } else { msgArea.textContent = "Failed. Retry."; btn.textContent = "RETRY"; } }
+            };
+            gameArea.appendChild(disp); gameArea.appendChild(btn);
+        }
+
+        function setupBuckets() {
+            modalTitle.textContent = "Water Logic"; modalInstr.textContent = "Measure exactly 4L in the 5L bucket.";
+            let b5 = 0, b2 = 0;
+            const stage = document.createElement('div'); stage.className = 'buckets-stage';
+            const div5 = document.createElement('div'); div5.className = 'bucket-container'; div5.innerHTML = `<div class="bucket" style="height:120px;"><div class="bucket-water" id="w5" style="height:0%"></div></div><div class="bucket-label">5L Bucket</div>`;
+            const div2 = document.createElement('div'); div2.className = 'bucket-container'; div2.innerHTML = `<div class="bucket" style="height:70px;"><div class="bucket-water" id="w2" style="height:0%"></div></div><div class="bucket-label">2L Bucket</div>`;
+            stage.appendChild(div5); stage.appendChild(div2); gameArea.appendChild(stage);
+            const status = document.createElement('div'); status.style.marginBottom = '15px';
+            function update() { document.getElementById('w5').style.height = (b5/5)*100 + '%'; document.getElementById('w2').style.height = (b2/2)*100 + '%'; status.textContent = `Current: 5L contains ${b5}L | 2L contains ${b2}L`; if(b5 === 4) winGame('buckets'); }
+            const controls = document.createElement('div'); controls.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:5px;';
+            const acts = [{t:"Fill 5L", f:()=>b5=5}, {t:"Fill 2L", f:()=>b2=2}, {t:"Empty 5L", f:()=>b5=0}, {t:"Empty 2L", f:()=>b2=0}, {t:"Pour 5L > 2L", f:()=>{ let amt = Math.min(b5, 2-b2); b5-=amt; b2+=amt; }}, {t:"Pour 2L > 5L", f:()=>{ let amt = Math.min(b2, 5-b5); b2-=amt; b5+=amt; }}];
+            acts.forEach(a => { const b = document.createElement('button'); b.className = 'game-btn'; b.textContent = a.t; b.onclick = () => { a.f(); update(); }; controls.appendChild(b); });
+            gameArea.appendChild(status); gameArea.appendChild(controls); update();
+        }
+
+        function setupRiver() {
+            modalTitle.textContent = "River Crossing"; modalInstr.textContent = "Farmer must ferry items to Right Bank. Wolf eats Goat, Goat eats Cabbage if left alone.";
+            let state = { wolf: 0, goat: 0, cab: 0, farmer: 0 };
+            const scene = document.createElement('div'); scene.className = 'river-scene';
+            const leftBank = document.createElement('div'); leftBank.className = 'bank'; leftBank.id = 'bank-0';
+            const river = document.createElement('div'); river.className = 'river'; river.innerHTML = '<div class="boat" id="boat">🛶</div>';
+            const rightBank = document.createElement('div'); rightBank.className = 'bank'; rightBank.id = 'bank-1';
+            scene.appendChild(leftBank); scene.appendChild(river); scene.appendChild(rightBank); gameArea.appendChild(scene);
+            const items = { wolf: '🐺', goat: '🐐', cab: '🥬', farmer: '👨‍🌾' };
+            function render() {
+                document.getElementById('bank-0').innerHTML = ''; document.getElementById('bank-1').innerHTML = '';
+                document.getElementById('boat').style.transform = state.farmer === 0 ? 'translateX(-100px)' : 'translateX(100px)';
+                for(let k in items) { const el = document.createElement('span'); el.className = 'river-item'; el.textContent = items[k]; el.onclick = () => move(k); document.getElementById(`bank-${state[k]}`).appendChild(el); }
+            }
+            function move(who) {
+                if(who !== 'farmer' && state[who] !== state.farmer) { msgArea.textContent = "Farmer isn't there to move it!"; return; }
+                const oldSide = state.farmer; const newSide = oldSide === 0 ? 1 : 0;
+                state.farmer = newSide; if(who !== 'farmer') state[who] = newSide;
+                const check = oldSide; const here = []; if(state.wolf===check) here.push('wolf'); if(state.goat===check) here.push('goat'); if(state.cab===check) here.push('cab');
+                if(state.farmer !== check) { if(here.includes('wolf') && here.includes('goat')) { reset("Wolf ate Goat!"); return; } if(here.includes('goat') && here.includes('cab')) { reset("Goat ate Cabbage!"); return; } }
+                render(); if(state.wolf===1 && state.goat===1 && state.cab===1 && state.farmer===1) winGame('river');
+            }
+            function reset(reason) { msgArea.textContent = reason + " Resetting..."; state = { wolf: 0, goat: 0, cab: 0, farmer: 0 }; setTimeout(() => { msgArea.textContent=''; render(); }, 1500); }
+            render();
+        }
+
+        function setupDiff() {
+            modalTitle.textContent = "Find the Number"; modalInstr.textContent = "Find the single '6' hidden among the '9's.";
+            const grid = document.createElement('div'); grid.className = 'diff-grid';
+            const total = 110; const targetIndex = Math.floor(Math.random() * total);
+            for(let i=0; i<total; i++) {
+                const span = document.createElement('div'); span.className = 'diff-num';
+                if(i === targetIndex) { span.textContent = '6'; span.onclick = () => winGame('diff'); } 
+                else { span.textContent = '9'; span.onclick = () => { msgArea.textContent = "Nope"; span.style.color='red'; }; }
+                grid.appendChild(span);
+            }
+            gameArea.appendChild(grid);
+        }
+
+        // --- FINAL GAME (DRAG/CLICK LOGIC) ---
+        function startFinalGame() {
+            modal.style.display = 'flex';
+            modalTitle.textContent = "FINAL PUZZLE";
+            modalInstr.textContent = "Click letters from the pool to place them in order.";
+            gameArea.innerHTML = ''; msgArea.textContent = '';
+
+            // Data structures
+            // We use objects with ID to handle duplicate letters (T, P, R appear multiple times)
+            let pool = collectedLetters.map((char, index) => ({ char, id: index }));
+            let placed = [];
+
+            const container = document.createElement('div');
+            container.className = 'puzzle-container';
+
+            // Slots Label
+            const slotsLabel = document.createElement('div');
+            slotsLabel.className = 'puzzle-section-label';
+            slotsLabel.textContent = "Your Solution:";
+            container.appendChild(slotsLabel);
+
+            // Slots Area (The Answer)
+            const slotsArea = document.createElement('div');
+            slotsArea.className = 'puzzle-slots-area';
+            container.appendChild(slotsArea);
+
+            // Pool Label
+            const poolLabel = document.createElement('div');
+            poolLabel.className = 'puzzle-section-label';
+            poolLabel.textContent = "Collected Letters:";
+            container.appendChild(poolLabel);
+
+            // Pool Area (The Source)
+            const poolArea = document.createElement('div');
+            poolArea.className = 'puzzle-pool-area';
+            container.appendChild(poolArea);
+
+            // Render Function
+            function renderPuzzle() {
+                slotsArea.innerHTML = '';
+                poolArea.innerHTML = '';
+
+                // Render Placed
+                if (placed.length === 0) {
+                    const ph = document.createElement('div'); ph.className='empty-slot'; ph.textContent = "Click letters below"; slotsArea.appendChild(ph);
+                } else {
+                    placed.forEach((item, index) => {
+                        const tile = document.createElement('div');
+                        tile.className = 'puzzle-tile';
+                        tile.textContent = item.char;
+                        tile.onclick = () => {
+                            // Remove from placed, add back to pool
+                            placed.splice(index, 1);
+                            pool.push(item);
+                            renderPuzzle();
+                        };
+                        slotsArea.appendChild(tile);
+                    });
+                }
+
+                // Render Pool
+                pool.forEach((item, index) => {
+                    const tile = document.createElement('div');
+                    tile.className = 'puzzle-tile';
+                    tile.textContent = item.char;
+                    tile.onclick = () => {
+                        // Remove from pool, add to placed
+                        pool.splice(index, 1);
+                        placed.push(item);
+                        renderPuzzle();
+                        checkPuzzleWin();
+                    };
+                    poolArea.appendChild(tile);
+                });
+            }
+
+            function checkPuzzleWin() {
+                const currentStr = placed.map(i => i.char).join('');
+                if (currentStr === "TRIPTOPARIS") {
+                    gameArea.innerHTML = "<h1 style='color:gold'>BON VOYAGE!</h1><p>You are going to Paris!</p><div style='font-size:4rem'>🗼🍷🥖</div>";
+                    modalInstr.style.display = 'none';
+                    confetti({ particleCount: 500, spread: 100, origin: { y: 0.6 } });
+                }
+            }
+
+            gameArea.appendChild(container);
+            renderPuzzle();
+        }
+
+        init();
+    </script>
+</body>
+</html>
