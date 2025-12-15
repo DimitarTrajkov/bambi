@@ -181,6 +181,15 @@
     </style>
 </head>
 <body>
+    <div id="birthday-lock" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a2e; z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#f5f5f5;">
+         <h1 style="font-size:4rem; margin:0;">🎁</h1>
+         <h1 style="font-family: 'Playfair Display', serif; color:#c6a87c; font-size:3rem; margin:20px 0;">NO PEEKING!</h1>
+         <p style="font-family: 'Montserrat', sans-serif; font-size:1.2rem; max-width:600px; line-height:1.6;">
+             This surprise is locked until your birthday.<br>
+             Please come back on <strong>December 18th</strong>.
+         </p>
+         <div id="countdown" style="margin-top:30px; font-family: 'Roboto Mono', monospace; font-size:1.5rem; color:#c6a87c;"></div>
+    </div>
 
     <header>
         <h1>BUON COMPLEANNO</h1>
@@ -220,6 +229,40 @@
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
+        // --- TIME LOCK LOGIC ---
+    (function checkBirthdayLock() {
+        // SET THE TARGET DATE HERE: Year, Month (0-11), Day, Hour, Minute
+        // Note: Month 11 is December (Jan is 0)
+        const targetDate = new Date(2025, 11, 18, 0, 0, 0); 
+        
+        const now = new Date();
+        const lockScreen = document.getElementById('birthday-lock');
+        const countdownEl = document.getElementById('countdown');
+
+        if (now < targetDate) {
+            // It is too early -> Show the lock screen
+            lockScreen.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Stop scrolling
+            
+            // Optional: Simple countdown ticker
+            setInterval(() => {
+                const diff = targetDate - new Date();
+                if (diff <= 0) {
+                    location.reload(); // Reload if time is reached while staring at screen
+                } else {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    countdownEl.textContent = `Unlocking in: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+                }
+            }, 1000);
+        } else {
+            // It is time! -> Hide lock screen (Game proceeds as normal)
+            if(lockScreen) lockScreen.style.display = 'none';
+        }
+    })();
+    
         // --- GAME STATE ---
         const letterPool = ['T', 'R', 'I', 'P', 'T', 'O', 'P', 'A', 'R', 'I', 'S'];
         letterPool.sort(() => Math.random() - 0.5);
@@ -333,7 +376,7 @@
                     el.textContent = c.txt; el.classList.remove('hidden-card');
                     if (!first) first = {el, id: c.id};
                     else {
-                        if (first.id === c.id) { first = null; matches++; if (matches === 12) winGame('memory'); } 
+                        if (first.id === c.id) { first = null; matches++; if (matches === 4) winGame('memory'); } 
                         else { locked = true; setTimeout(() => { el.classList.add('hidden-card'); el.textContent = ''; first.el.classList.add('hidden-card'); first.el.textContent = ''; first = null; locked = false; }, 1000); }
                     }
                 };
@@ -696,5 +739,4 @@
         init();
     </script>
 </body>
-
 </html>
