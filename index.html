@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Birthday Present</title>
+    <title>Journey to Paris - Final Version</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto+Mono:wght@400;700&display=swap');
 
@@ -181,7 +181,7 @@
     </style>
 </head>
 <body>
-    <div id="birthday-lock" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a2e; z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#f5f5f5;">
+    <!-- <div id="birthday-lock" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a2e; z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#f5f5f5;">
          <h1 style="font-size:4rem; margin:0;">🎁</h1>
          <h1 style="font-family: 'Playfair Display', serif; color:#c6a87c; font-size:3rem; margin:20px 0;">NO PEEKING!</h1>
          <p style="font-family: 'Montserrat', sans-serif; font-size:1.2rem; max-width:600px; line-height:1.6;">
@@ -189,7 +189,25 @@
              Please come back on <strong>December 18th</strong>.
          </p>
          <div id="countdown" style="margin-top:30px; font-family: 'Roboto Mono', monospace; font-size:1.5rem; color:#c6a87c;"></div>
+    </div> -->
+    <div id="birthday-lock" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a2e; z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#f5f5f5;">
+        <h1 style="font-size:4rem; margin:0;">🎁</h1>
+        <h1 style="font-family: 'Playfair Display', serif; color:#c6a87c; font-size:3rem; margin:20px 0;">NO PEEKING!</h1>
+        <p style="font-family: 'Montserrat', sans-serif; font-size:1.2rem; max-width:600px; line-height:1.6;">
+            This surprise is locked until your birthday.<br>
+            Please come back on <strong>December 18th</strong>.
+        </p>
+        <div id="countdown" style="margin-top:30px; font-family: 'Roboto Mono', monospace; font-size:1.5rem; color:#c6a87c;"></div>
+    
+        <div style="margin-top: 50px; opacity: 0.7;">
+            <p style="font-size: 0.8rem; margin-bottom: 5px;">Master Override</p>
+            <input type="password" id="master-pass" placeholder="Password" style="padding: 8px; border-radius: 5px; border: none;">
+            <button id="master-btn" style="padding: 8px 15px; border-radius: 5px; border: none; background: #c6a87c; color: #1a1a2e; font-weight: bold; cursor: pointer;">UNLOCK</button>
+        </div>
     </div>
+
+
+
 
     <header>
         <h1>BUON COMPLEANNO</h1>
@@ -230,38 +248,64 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         // --- TIME LOCK LOGIC ---
-    (function checkBirthdayLock() {
-        // SET THE TARGET DATE HERE: Year, Month (0-11), Day, Hour, Minute
-        // Note: Month 11 is December (Jan is 0)
-        const targetDate = new Date(2025, 11, 18, 0, 0, 0); 
-        
-        const now = new Date();
-        const lockScreen = document.getElementById('birthday-lock');
-        const countdownEl = document.getElementById('countdown');
+(function checkBirthdayLock() {
+    // 1. CONFIGURATION
+    const targetDate = new Date(2025, 11, 18, 0, 0, 0); // Dec 18, 2025
+    const MASTER_PASSWORD = "123"; // <--- CHANGE THIS PASSWORD
+    
+    // 2. GET ELEMENTS
+    const now = new Date();
+    const lockScreen = document.getElementById('birthday-lock');
+    const countdownEl = document.getElementById('countdown');
+    const masterBtn = document.getElementById('master-btn');
+    const masterInput = document.getElementById('master-pass');
 
-        if (now < targetDate) {
-            // It is too early -> Show the lock screen
-            lockScreen.style.display = 'flex';
-            document.body.style.overflow = 'hidden'; // Stop scrolling
-            
-            // Optional: Simple countdown ticker
-            setInterval(() => {
-                const diff = targetDate - new Date();
-                if (diff <= 0) {
-                    location.reload(); // Reload if time is reached while staring at screen
-                } else {
-                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                    countdownEl.textContent = `Unlocking in: ${days}d ${hours}h ${minutes}m ${seconds}s`;
-                }
-            }, 1000);
-        } else {
-            // It is time! -> Hide lock screen (Game proceeds as normal)
-            if(lockScreen) lockScreen.style.display = 'none';
-        }
-    })();
+    // 3. CHECK IF ALREADY UNLOCKED VIA PASSWORD PREVIOUSLY
+    if (localStorage.getItem('birthday_unlocked') === 'true') {
+        if(lockScreen) lockScreen.style.display = 'none';
+        return; // Exit function, allow game to play
+    }
+
+    // 4. DATE CHECK
+    if (now < targetDate) {
+        // It is too early -> Show the lock screen
+        lockScreen.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Stop scrolling
+        
+        // Countdown Ticker
+        setInterval(() => {
+            const diff = targetDate - new Date();
+            if (diff <= 0) {
+                location.reload(); 
+            } else {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                countdownEl.textContent = `Unlocking in: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+            }
+        }, 1000);
+
+        // 5. MASTER BUTTON LOGIC
+        masterBtn.addEventListener('click', function() {
+            if (masterInput.value === MASTER_PASSWORD) {
+                // Unlock!
+                lockScreen.style.display = 'none';
+                document.body.style.overflow = 'auto'; // Re-enable scrolling
+                
+                // Save to local storage so it stays unlocked if you refresh
+                localStorage.setItem('birthday_unlocked', 'true'); 
+                alert("Master Unlock Active! Access Granted.");
+            } else {
+                alert("Wrong Password!");
+            }
+        });
+
+    } else {
+        // It is naturally time!
+        if(lockScreen) lockScreen.style.display = 'none';
+    }
+})();
     
         // --- GAME STATE ---
         const letterPool = ['T', 'R', 'I', 'P', 'T', 'O', 'P', 'A', 'R', 'I', 'S'];
@@ -740,4 +784,3 @@
     </script>
 </body>
 </html>
-
